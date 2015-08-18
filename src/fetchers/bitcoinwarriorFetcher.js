@@ -9,6 +9,17 @@ export class BitcoinwarriorFetcher extends Fetcher {
    */
   constructor(storage) {
     super('http://bitcoinwarrior.net/feed/', storage);
-    this.FEED_ID = 'bitcoinwarrior';
+    this.id = 'bitcoinwarrior';
+  }
+
+  /**
+   * Format list of fetched articles
+   * @param {array} articles List of articles
+   * @param {object} meta Meta feed information
+   * @throws {AssertionError}
+   * @returns {array} List of formatted articles
+   */
+  format(articles, meta) {
+    return super.format(articles, meta);
   }
 }
