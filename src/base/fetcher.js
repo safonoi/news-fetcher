@@ -21,11 +21,24 @@ export class Fetcher extends EventEmitter {
    */
   constructor(url, storage) {
     assert.ok(validator.isURL(url), 'url param must be a valid url');
-    assert.ok(storage instanceof Storage, 'url param must be a valid url');
+    assert.ok(storage instanceof Storage, 'storage must be an instance of Storage');
     super();
 
+    /**
+     * Feed url address
+     * @type {string}
+     */
     this.url = url;
+    /**
+     * Storage that is related with this fetcher
+     * @type {Storage}
+     */
     this.storage = storage;
+    /**
+     * Identifier of the fetcher (it's used by storage)
+     * @type {number}
+     */
+    this.id = 'default';
   }
 
   /**
@@ -64,9 +77,10 @@ export class Fetcher extends EventEmitter {
 
     this._getData(feedparser);
 
+    var fetchedArticles = [];
+
     // feedparser will be ready to send data when it emits 'readable' event
     feedparser.on('readable', function() {
-      var fetchedArticles = [];
       // Get the first article
       var article = this.read();
       while (article) {
@@ -74,6 +88,9 @@ export class Fetcher extends EventEmitter {
         article = this.read();
         break;
       }
+    });
+    // When feedparser finish getting data from feed we'll call user callback
+    feedparser.on('end', function(){
       callback(null, {meta: this.meta, articles: fetchedArticles});
     });
   }
@@ -88,14 +105,24 @@ export class Fetcher extends EventEmitter {
   format(articles, meta = null) {
     assert.ok(_.isArray(articles), 'articles param must be an array');
     var formattedArticles = [];
-    _.forEach(articles, function(curArticle) {
+    _.each(articles, function(curArticle) {
       formattedArticles.push({
         guid: curArticle.guid,
-        title: curArticle.title,
-        description: curArticle.description,
+        //title: curArticle.title,
+       // description: curArticle.description,
         pubDate: curArticle.pubDate
       });
     });
     return formattedArticles;
+  }
+
+  /**
+   * Save articles in the storage
+   * @param {array} articles List of articles
+   * @throws {AssertionError}
+   */
+  saveArticles(articles) {
+    assert.ok(_.isArray(articles), 'articles param must be an array');
+    this.storage.saveArticles(this.id, articles);
   }
 }
