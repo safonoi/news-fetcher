@@ -29,18 +29,12 @@ export class Fetcher extends EventEmitter {
   }
 
   /**
-   * Get content from the feed
-   * Emits events: 'error'
-   * @returns {object} {meta: 'Meta informations of the feed', articles: 'list of articles'}
+   * Get data from feed url
+   * @param {object} pipeTarget Where we'll redirect the response flow
+   * @private
    */
-  getFeedContent() {
+  _getData(pipeTarget) {
     var self = this;
-
-    var feedparser = new FeedParser();
-    feedparser.on('error', function(error) {
-      self.emit('error', error);
-    });
-
     var req = request(this.url);
     req.on('error', function (error) {
       self.emit('error', error);
@@ -50,8 +44,25 @@ export class Fetcher extends EventEmitter {
       if (res.statusCode != 200)
         return this.emit('error', new Error('Wrong status code ' + res.statusCode));
       // Redirect stream from req to feedparser
-      this.pipe(feedparser);
+      this.pipe(pipeTarget);
     });
+  }
+
+  /**
+   * Get content from the feed
+   * Emits events: 'error'
+   * @throws {AssertionError}
+   * @returns {object} {meta: 'Meta informations of the feed', articles: 'list of articles'}
+   */
+  getFeedContent(callback) {
+    var self = this;
+    assert.ok(typeof(callback) === 'function', 'callback is required');
+    var feedparser = new FeedParser();
+    feedparser.on('error', function(error) {
+      self.emit('error', error);
+    });
+
+    this._getData(feedparser);
 
     // feedparser will be ready to send data when it emits 'readable' event
     feedparser.on('readable', function() {
@@ -63,7 +74,7 @@ export class Fetcher extends EventEmitter {
         article = this.read();
         break;
       }
-      return {meta: this.meta, articles: fetchedArticles};
+      callback(null, {meta: this.meta, articles: fetchedArticles});
     });
   }
 }
