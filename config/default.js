@@ -6,9 +6,10 @@ module.exports = {
   // Settings of data storages
   storages: {
     redis: {
-      host: '127.0.0.1',
+      host: 'localhost',
       port: 6379,
-      pass: '',
+      pass: 'simplePass',
+      params: {},
       db: 0
     },
     // You can implement other storage modules such as mongodb, mysql, memcache..

@@ -14,7 +14,6 @@ import {Storage} from './storage';
  */
 export class Fetcher extends EventEmitter {
   /**
-   * Create fetcher instance
    * @constructor
    * @param {string} url Rss feed url
    * @param {object} storage Instance of the child of Storage class
@@ -83,9 +82,11 @@ export class Fetcher extends EventEmitter {
    * Format list of fetched articles
    * @param {array} articles List of articles
    * @param {object} meta Meta feed information
+   * @throws {AssertionError}
    * @returns {array} List of formatted articles
    */
   format(articles, meta = null) {
+    assert.ok(_.isArray(articles), 'articles param must be an array');
     var formattedArticles = [];
     _.forEach(articles, function(curArticle) {
       formattedArticles.push({
