@@ -1,6 +1,8 @@
 import assert from 'assert';
 import validator from 'validator';
 import redis from 'redis';
+import _ from 'underscore';
+import util from 'util';
 import {Storage} from '../base/storage';
 
 export class RedisStorage extends Storage {
@@ -36,11 +38,11 @@ export class RedisStorage extends Storage {
         }
         if(this.config.db !== undefined)
           this.connection.select(redisDbName);
-        callback(null, this.connection);
+        callback(null, self);
       });
     }
     else {
-      callback(null, this.connection);
+      callback(null, self);
     }
   }
 
@@ -48,18 +50,23 @@ export class RedisStorage extends Storage {
    * Close connection
    * @param {function} callback User callback function(err){...}
    */
-  closeConnection(callback) {
+  closeConnection(callback = function(){}) {
     super.closeConnection(callback);
     this.connection.quit();
     callback(null);
   }
 
   /**
-   * Add articles
+   * Save articles
+   * @param {string} fetcherId
    * @param {number} articles
+   * @param {function} callback User callback function(err){...}
    */
-  addArticles(articles) {
-    super.addArticles(articles);
-    throw new Error('Must be implemented!');
+  saveArticles(fetcherId, articles, callback = function(){}) {
+    super.saveArticles(fetcherId, articles, callback);
+    var articles = _.each(articles, function(curArticle){
+      curArticle = JSON.stringify(curArticle);
+    });
+    this.connection.rpush.apply(this.connection, [fetcherId].concat(articles).concat([callback]));
   }
 }

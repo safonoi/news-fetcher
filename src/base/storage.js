@@ -25,8 +25,8 @@ export class Storage extends EventEmitter {
    * @throws {AssertionError}
    * must be implemented in the child
    */
-  createConnection(callback) {
-    assert.ok(typeof(callback) === 'function', 'callback is required');
+  createConnection(callback = function(){}) {
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 
   /**
@@ -35,8 +35,8 @@ export class Storage extends EventEmitter {
    * @throws {AssertionError}
    * must be implemented in the child
    */
-  closeConnection(callback) {
-    assert.ok(typeof(callback) === 'function', 'callback is required');
+  closeConnection(callback = function(){}) {
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 
   /**
@@ -59,12 +59,16 @@ export class Storage extends EventEmitter {
   }
 
   /**
-   * Add articles
+   * Save articles
+   * @param {string} fetcherId
    * @param {number} articles
+   * @param {function} callback User callback function(err){...}
    * @throws {AssertionError}
    * must be implemented in the child
    */
-  addArticles(articles) {
+  saveArticles(fetcherId, articles, callback = function(){}) {
+    assert.ok(fetcherId, 'fetcherId is required');
     assert.ok(_.isArray(articles), 'articles param must be an array');
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 }

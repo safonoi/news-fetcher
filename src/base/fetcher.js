@@ -108,8 +108,8 @@ export class Fetcher extends EventEmitter {
     _.each(articles, function(curArticle) {
       formattedArticles.push({
         guid: curArticle.guid,
-        //title: curArticle.title,
-       // description: curArticle.description,
+        title: curArticle.title,
+        description: curArticle.description,
         pubDate: curArticle.pubDate
       });
     });

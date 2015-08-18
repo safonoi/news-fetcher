@@ -12,6 +12,6 @@ module.exports = {
       params: {},
       db: 0
     },
-    // You can implement other storage modules such as mongodb, mysql, memcache..
+    // You can implement other storage modules such as mongodb, mysql..
   }
 };
