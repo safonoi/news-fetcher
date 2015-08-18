@@ -3,6 +3,7 @@ import FeedParser from 'feedparser';
 import assert from 'assert';
 import validator from 'validator';
 import events from 'events';
+import _ from 'underscore';
 var EventEmitter = events.EventEmitter;
 
 import {Storage} from './storage';
@@ -76,5 +77,24 @@ export class Fetcher extends EventEmitter {
       }
       callback(null, {meta: this.meta, articles: fetchedArticles});
     });
+  }
+
+  /**
+   * Format list of fetched articles
+   * @param {array} articles List of articles
+   * @param {object} meta Meta feed information
+   * @returns {array} List of formatted articles
+   */
+  format(articles, meta = null) {
+    var formattedArticles = [];
+    _.forEach(articles, function(curArticle) {
+      formattedArticles.push({
+        guid: curArticle.guid,
+        title: curArticle.title,
+        description: curArticle.description,
+        pubDate: curArticle.pubDate
+      });
+    });
+    return formattedArticles;
   }
 }

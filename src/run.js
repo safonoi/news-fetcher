@@ -10,6 +10,7 @@ fetcher.on('error', function(err){
 });
 
 fetcher.getFeedContent(function(err, data){
-  console.log(data.meta);
+  var articles = fetcher.format(data.articles, data.meta);
+  console.log(articles);
 });
 
