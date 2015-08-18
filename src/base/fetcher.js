@@ -3,6 +3,8 @@ import FeedParser from 'feedparser';
 import assert from 'assert';
 import validator from 'validator';
 import events from 'events';
+import crypto from 'crypto';
+import async from 'async';
 import _ from 'underscore';
 var EventEmitter = events.EventEmitter;
 
@@ -62,6 +64,17 @@ export class Fetcher extends EventEmitter {
   }
 
   /**
+   * Get id of the article
+   * @param {object} article
+   * @returns {*|string}
+   */
+  getArticleId(article) {
+    var md5 = crypto.createHash('md5');
+    md5.update(article.guid);
+    return md5.digest('hex');
+  }
+
+  /**
    * Get content from the feed
    * Emits events: 'error'
    * @throws {AssertionError}
@@ -74,46 +87,69 @@ export class Fetcher extends EventEmitter {
     feedparser.on('error', function(error) {
       self.emit('error', error);
     });
-
     this._getData(feedparser);
-
-    var fetchedArticles = [];
-
-    // feedparser will be ready to send data when it emits 'readable' event
-    feedparser.on('readable', function() {
-      // Get the first article
-      var article = this.read();
-      while (article) {
-        fetchedArticles.push(article);
-        article = this.read();
-        break;
-      }
-    });
-    // When feedparser finish getting data from feed we'll call user callback
-    feedparser.on('end', function(){
-      callback(null, {meta: this.meta, articles: fetchedArticles});
-    });
+    async.waterfall([
+        // Get id of the last saved article
+        function(callback) {
+          self.storage.getLastId(self.id, callback);
+        },
+        // Fetch articles from the feed
+        function(lastArticleId, callback) {
+          var isOldArticle = false;
+          // All articles that were fetched from feed
+          var fetchedArticles = [];
+          // feedparser will be ready to send data when it emits 'readable' event
+          feedparser.on('readable', function() {
+            // Get the first article
+            var article = this.read();
+            while (article) {
+              // If this article has been already parsed ignore rest of articles
+              if(lastArticleId && self.getArticleId(article) === lastArticleId)
+                isOldArticle = true;
+              if(!isOldArticle) {
+                fetchedArticles.push(article);
+                article = this.read();
+              }
+              else
+                break;
+            }
+          });
+          // When feedparser finishes getting data from feed we'll call user callback
+          feedparser.on('end', function(){
+            // Save id of the first article from feed
+            if(fetchedArticles.length)
+              self.storage.setLastId(self.id, self.getArticleId(fetchedArticles[0]));
+            callback(null, {meta: this.meta, articles: fetchedArticles});
+          });
+        }
+      ],
+      function(err, data) {
+        callback(err, data);
+      });
   }
 
   /**
    * Format list of fetched articles
    * @param {array} articles List of articles
    * @param {object} meta Meta feed information
+   * @param {function} decorator Format article function
    * @throws {AssertionError}
    * @returns {array} List of formatted articles
    */
-  format(articles, meta = null) {
+  format(articles, meta = null, decorator = null) {
     assert.ok(_.isArray(articles), 'articles param must be an array');
-    var formattedArticles = [];
-    _.each(articles, function(curArticle) {
-      formattedArticles.push({
-        guid: curArticle.guid,
-        title: curArticle.title,
-        description: curArticle.description,
-        pubDate: curArticle.pubDate
-      });
-    });
-    return formattedArticles;
+    if(decorator)
+      assert.ok(typeof(decorator) === 'function', 'decorator must be a function');
+
+    decorator = decorator? decorator : function(article) {
+      return {
+        guid: article.guid,
+        title: article.title,
+        description: article.description,
+        pubDate: article.pubDate
+      };
+    };
+    return _.map(articles, decorator);
   }
 
   /**
@@ -123,6 +159,6 @@ export class Fetcher extends EventEmitter {
    */
   saveArticles(articles) {
     assert.ok(_.isArray(articles), 'articles param must be an array');
-    this.storage.saveArticles(this.id, articles);
+    this.storage.save(this.id, articles);
   }
 }

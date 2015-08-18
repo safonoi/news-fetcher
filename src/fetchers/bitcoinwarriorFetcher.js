@@ -21,5 +21,11 @@ export class BitcoinwarriorFetcher extends Fetcher {
    */
   format(articles, meta) {
     return super.format(articles, meta);
+    /**
+      You can override decorator function
+      return super.format(articles, meta, function(article){
+        return `This is ${article.title}`;
+      });
+     */
   }
 }

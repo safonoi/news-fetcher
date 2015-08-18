@@ -8,17 +8,28 @@ import {Storage} from '../base/storage';
 export class RedisStorage extends Storage {
   /**
    * @constructor
+   * @param {object} config
    */
   constructor(config){
     super(config);
   }
 
   /**
+   * Get redis key for last id of the article record
+   * @param {number} fetcherId
+   * @returns {string}
+   * @private
+   */
+  _getLastIdKey(fetcherId) {
+    return 'last_id:' + fetcherId;
+  }
+
+  /**
    * Create connection
    * @param {function} callback User callback function(err, connection){...}
    */
-  createConnection(callback){
-    super.createConnection(callback);
+  openConnection(callback){
+    super.openConnection(callback);
     var self = this;
     var redisClient = redis.createClient(
       this.config.port,
@@ -62,11 +73,32 @@ export class RedisStorage extends Storage {
    * @param {number} articles
    * @param {function} callback User callback function(err){...}
    */
-  saveArticles(fetcherId, articles, callback = function(){}) {
-    super.saveArticles(fetcherId, articles, callback);
-    var articles = _.each(articles, function(curArticle){
+  save(fetcherId, articles, callback = function(){}) {
+    super.save(fetcherId, articles, callback);
+    articles = _.each(articles, function(curArticle){
       curArticle = JSON.stringify(curArticle);
     });
     this.connection.rpush.apply(this.connection, [fetcherId].concat(articles).concat([callback]));
+  }
+
+  /**
+   * Set id of the last fetched article
+   * @param {number} fetcherId
+   * @param {number} articleId
+   * @param {function} callback User callback function(err){...}
+   */
+  setLastId(fetcherId, articleId, callback = function(){}) {
+    super.setLastId(fetcherId, articleId, callback);
+    this.connection.set(this._getLastIdKey(fetcherId), articleId, callback);
+  }
+
+  /**
+   * Get id of the last fetched article
+   * @param {number} fetcherId
+   * @param {function} callback User callback function(err, result){...}
+   */
+  getLastId(fetcherId, callback) {
+    super.getLastId(fetcherId, callback);
+    this.connection.get(this._getLastIdKey(fetcherId), callback);
   }
 }

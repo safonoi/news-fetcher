@@ -13,14 +13,14 @@ async.waterfall([
     redisStorage.on('error', function(err){
       console.log(err);
     });
-    redisStorage.createConnection(callback);
+    redisStorage.openConnection(callback);
   },
 
   // Create instance of fetcher
   function(redisStorage, callback) {
     var fetcher = new BitcoinwarriorFetcher(redisStorage);
     fetcher.on('error', function(err){
-      console.log('Oh! We\'ve got an error! ' + err);
+      console.log('Oh! We\'ve got an error! ' + util.inspect(err, true, null));
     });
     callback(null, fetcher, redisStorage);
   },
@@ -28,9 +28,10 @@ async.waterfall([
   // Get articles from feed and save them
   function(fetcher, redisStorage, callback) {
     fetcher.getFeedContent(function(err, data){
-     var articles = fetcher.format(data.articles, data.meta);
-     fetcher.saveArticles(articles, callback);
-     redisStorage.closeConnection();
+      var articles = fetcher.format(data.articles, data.meta);
+      console.log(articles);
+      fetcher.saveArticles(articles, callback);
+      redisStorage.closeConnection();
     });
   }
 ],

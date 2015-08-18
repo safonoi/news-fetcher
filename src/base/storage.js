@@ -25,7 +25,7 @@ export class Storage extends EventEmitter {
    * @throws {AssertionError}
    * must be implemented in the child
    */
-  createConnection(callback = function(){}) {
+  openConnection(callback = function(){}) {
     assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 
@@ -40,22 +40,28 @@ export class Storage extends EventEmitter {
   }
 
   /**
-   * Save id of the last fetched item
+   * Set id of the last fetched item
    * @param {number} fetcherId
    * @param {number} articleId
+   * @param {function} callback User callback function(err){...}
+   * @throws {AssertionError}
    * must be implemented in the child
    */
-  saveLastId (fetcherId, articleId) {
-    throw new Error('Must be implemented!');
+  setLastId (fetcherId, articleId,  callback = function(){}) {
+    assert.ok(fetcherId, 'fetcherId is required');
+    assert.ok(articleId, 'articleId is required');
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 
   /**
    * Get id of the last fetched article
    * @param {number} fetcherId
+   * @param {function} callback User callback function(err, result){...}
    * must be implemented in the child
    */
-  getLastId (fetcherId) {
-    throw new Error('Must be implemented!');
+  getLastId (fetcherId, callback = function(){}) {
+    assert.ok(fetcherId, 'fetcherId is required');
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
   }
 
   /**
@@ -66,7 +72,7 @@ export class Storage extends EventEmitter {
    * @throws {AssertionError}
    * must be implemented in the child
    */
-  saveArticles(fetcherId, articles, callback = function(){}) {
+  save(fetcherId, articles, callback = function(){}) {
     assert.ok(fetcherId, 'fetcherId is required');
     assert.ok(_.isArray(articles), 'articles param must be an array');
     assert.ok(typeof(callback) === 'function', 'callback must be a function');
