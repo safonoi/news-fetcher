@@ -20,14 +20,14 @@ function log(message, _isError = false){
  * Storage for cron jobs status (true: locked, false: unlocked)
  * @type {object}
  */
-var jobLock = {};
+var cronJobState = {};
 
 /**
  * Lock cron job
  * @param {string} jobName
  */
 function cronJobLock(jobName) {
-  jobLock[jobName] = true;
+  cronJobState[jobName] = true;
 }
 
 /**
@@ -35,7 +35,7 @@ function cronJobLock(jobName) {
  * @param {string} jobName
  */
 function cronJobUnlock(jobName) {
-  jobLock[jobName] = false;
+  cronJobState[jobName] = false;
 }
 
 /**
@@ -43,7 +43,7 @@ function cronJobUnlock(jobName) {
  * @param {string} jobName
  */
 function cronjobIsLocked(jobName){
-  return jobLock[jobName] !== undefined ? jobLock[jobName] : false;
+  return cronJobState[jobName] !== undefined ? cronJobState[jobName] : false;
 }
 
 /**
