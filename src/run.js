@@ -1,44 +1,124 @@
 import util from 'util';
 import config from 'config';
 import async from 'async';
-import {Fetcher} from './base/fetcher';
-import {Storage} from './base/storage';
-import {BitcoinwarriorFetcher} from './fetchers/bitcoinwarriorFetcher';
-import {RedisStorage} from './storages/redisStorage';
+import _ from 'underscore';
+//import {Fetcher} from './base/fetcher';
+//import {Storage} from './base/storage';
 
-async.waterfall([
-  // Create instance of redis storage
-  function(callback) {
-    var redisStorage =  new RedisStorage(config.storages.redis);
-    redisStorage.on('error', function(err){
-      console.log(err);
-    });
-    redisStorage.openConnection(callback);
-  },
 
-  // Create instance of fetcher
-  function(redisStorage, callback) {
-    var fetcher = new BitcoinwarriorFetcher(redisStorage);
-    fetcher.on('error', function(err){
-      console.log('Oh! We\'ve got an error! ' + util.inspect(err, true, null));
-    });
-    callback(null, fetcher, redisStorage);
-  },
-
-  // Get articles from feed and save them
-  function(fetcher, redisStorage, callback) {
-    fetcher.getFeedContent(function(err, data){
-      var articles = fetcher.format(data.articles, data.meta);
-      console.log(articles);
-      fetcher.saveArticles(articles, callback);
-      redisStorage.closeConnection();
-    });
+/**
+ * Log function
+ * @param {mixed} message
+ * @param {boolean} _isError
+ * It would be better to implement more powerfull functional
+ */
+function log (message, _isError = false){
+  if(config.debug || _isError){
+    console.log(message);
   }
-],
-  function(err, result){
-    if(err)
-      console.log(err);
+}
+
+/**
+ * Init main flow
+ * @param {function} callback
+ */
+function init(callback) {
+  log('Init application');
+  callback(null, {storages: null, fetchers: null});
+}
+
+/**
+ * Load storages and open their connections
+ * @param {object} commonData
+ * @param {function} callback
+ */
+function loadStorages(commonData, callback) {
+  log('Loading storages ..');
+  commonData.storages = {};
+  async.forEachOf(config.storages,
+    function(storageConfig, storageName, callback){
+      log(`Loading ${storageName} ..`);
+      var StorageClass = require('./storages/' + storageConfig.class);
+      var storage = new StorageClass[storageConfig.class](storageConfig);
+      storage.on('error', function(err){
+        log(err, true);
+      });
+      storage.openConnection(function(err){
+        log(`Creating connection to the ${storageName} ..`);
+        if(err)
+          callback(err, commonData);
+        else {
+          commonData.storages[storageName] = storage;
+          callback(null);
+        }
+      });
+    },
+    function(err){
+      callback(err, commonData);
+    });
+}
+
+/**
+ * Load fetchers and init them by the related storage
+ * @param {object} commonData
+ * @param {function} callback
+ */
+function loadFetchers(commonData, callback) {
+  log('Loading fetchers ..');
+  commonData.fetchers = {};
+  async.forEachOf(config.fetchers,
+    function(fetcherConfig, fetcherName, callback){
+      log(`Loading ${fetcherName} ..`);
+      var FetcherClass = require('./fetchers/' + fetcherConfig.class);
+
+      var fetcher = new FetcherClass[fetcherConfig.class](commonData.storages[fetcherConfig.storage]);
+      fetcher.on('error', function(err){
+        log(err, true);
+      });
+      commonData.fetchers[fetcherName] = fetcher;
+      callback(null);
+    },
+    function(err){
+      callback(err, commonData);
+    });
+}
+
+/**
+ * Launch each fetcher (get, format and save new articles)
+ * @param {object} commonData
+ * @param {function} callback
+ */
+function launchFetchers(commonData, callback) {
+  log('Launch fetchers ..');
+  async.map(Object.keys(commonData.fetchers), function(fetcherName, callback){
+    log(`Launch ${fetcherName} ..`);
+    var fetcher = commonData.fetchers[fetcherName];
+    fetcher.launch(callback);
+  }, function(err, results){
+    _.each(results, function(curResult){
+      log(`${curResult[0]} has fethced ${curResult[1]} articles`);
+    });
+    callback(err, commonData);
+  });
+}
+
+/**
+ * Finish of the main flow
+ * @param {object} commonData
+ */
+function finish(commonData) {
+  // Close all connections of the storages
+  _.each(commonData.storages, function(storage){
+    storage.closeConnection();
+  });
+}
+
+// Main flow
+async.waterfall([
+  init,
+  loadStorages,
+  loadFetchers,
+  launchFetchers
+], function(err, commonData){
+  finish(commonData);
 });
-
-
-
