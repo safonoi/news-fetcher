@@ -173,7 +173,7 @@ export class Fetcher extends EventEmitter {
     self.getFeedContent(function(err, data){
       var articles = self.format(data.articles, data.meta);
       self.saveArticles(articles);
-      callback(null);
+      callback(null, articles.length);
     });
   }
 }
