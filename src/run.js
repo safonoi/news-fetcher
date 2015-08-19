@@ -2,9 +2,7 @@ import util from 'util';
 import config from 'config';
 import async from 'async';
 import _ from 'underscore';
-//import {Fetcher} from './base/fetcher';
-//import {Storage} from './base/storage';
-
+import {CronJob} from 'cron';
 
 /**
  * Log function
@@ -38,7 +36,8 @@ function loadStorages(commonData, callback) {
   async.forEachOf(config.storages,
     function(storageConfig, storageName, callback){
       log(`Loading ${storageName} ..`);
-      var StorageClass = require('./storages/' + storageConfig.class);
+      var StorageClass = require('./storages/' +
+        storageConfig.class.charAt(0).toLowerCase() + storageConfig.class.substr(1));
       var storage = new StorageClass[storageConfig.class](storageConfig);
       storage.on('error', function(err){
         log(err, true);
@@ -69,7 +68,8 @@ function loadFetchers(commonData, callback) {
   async.forEachOf(config.fetchers,
     function(fetcherConfig, fetcherName, callback){
       log(`Loading ${fetcherName} ..`);
-      var FetcherClass = require('./fetchers/' + fetcherConfig.class);
+      var FetcherClass = require('./fetchers/' +
+        fetcherConfig.class.charAt(0).toLowerCase() + fetcherConfig.class.substr(1));
 
       var fetcher = new FetcherClass[fetcherConfig.class](commonData.storages[fetcherConfig.storage]);
       fetcher.on('error', function(err){
@@ -84,22 +84,43 @@ function loadFetchers(commonData, callback) {
 }
 
 /**
- * Launch each fetcher (get, format and save new articles)
+ * Set cron for launching each fetcher (get, format and save new articles)
  * @param {object} commonData
  * @param {function} callback
  */
-function launchFetchers(commonData, callback) {
-  log('Launch fetchers ..');
-  async.map(Object.keys(commonData.fetchers), function(fetcherName, callback){
-    log(`Launch ${fetcherName} ..`);
+function setCronsForFetchers(commonData, callback) {
+  log('Setting cron jobs for fetchers ..');
+  commonData.jobs = [];
+  async.each(Object.keys(commonData.fetchers), function(fetcherName, callback){
     var fetcher = commonData.fetchers[fetcherName];
-    fetcher.launch(callback);
-  }, function(err, results){
-    _.each(results, function(curResult){
-      log(`${curResult[0]} has fethced ${curResult[1]} articles`);
-    });
+    // Set cron for cur fetcher and start it
+    var job = new CronJob(config.fetchers[fetcherName].interval,
+      // Job function
+      function() {
+        log(`Launch ${fetcherName} ..`);
+        fetcher.launch(function(err, result){
+          log(`${result[0]} has fethced ${result[1]} articles`);
+        });
+      }
+    );
+    commonData.jobs.push(job);
+    callback(null);
+  }, function(err){
     callback(err, commonData);
   });
+}
+
+/**
+ * Start each cron
+ * @param {object} commonData
+ * @param {function} callback
+ */
+function startCrons(commonData, callback) {
+  log('Starting cron jobs ..');
+  _.each(commonData.jobs, function(job){
+    job.start();
+  });
+  callback(null, commonData);
 }
 
 /**
@@ -107,6 +128,12 @@ function launchFetchers(commonData, callback) {
  * @param {object} commonData
  */
 function finish(commonData) {
+  log('Finishing working ..');
+  log('Stopping cron jobs ..');
+  _.each(commonData.jobs, function(job){
+    job.stop();
+  });
+  log('Closing connections ..');
   // Close all connections of the storages
   _.each(commonData.storages, function(storage){
     storage.closeConnection();
@@ -114,11 +141,20 @@ function finish(commonData) {
 }
 
 // Main flow
-async.waterfall([
-  init,
-  loadStorages,
-  loadFetchers,
-  launchFetchers
-], function(err, commonData){
-  finish(commonData);
-});
+function run() {
+  async.waterfall([
+    init,
+    loadStorages,
+    loadFetchers,
+    setCronsForFetchers,
+    startCrons
+  ], function (err, commonData) {
+    // Restarting flow for close and reopen connections of the storages
+    new CronJob(config.restartInterval, function(){
+      finish(commonData);
+      log('Restarting main flow ..');
+      run();
+    }).start();
+  });
+}
+run();

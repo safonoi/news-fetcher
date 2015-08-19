@@ -5,7 +5,7 @@
  * */
 module.exports =  {
   debug: false,
-  interval: '* */30 * * *',
+  interval: '* */30 * * * *',
   storages: {
     redis: {
       pass: 'here is redisdb pass'

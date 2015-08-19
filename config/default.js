@@ -1,8 +1,8 @@
 module.exports = {
   // Debug mode
   debug: true,
-  // How often will we fetch new data by default
-  defaultInterval: '*/2 * * * *',
+  // How often will we restart our fetchers
+  restartInterval: '*/10 * * * * *',
   // Setting of the fetchers
   fetchers: {
     bitcoinwarriorFetcher: {
@@ -11,7 +11,7 @@ module.exports = {
       // Where we will store fetched articles
       storage: 'redis',
       // How often will we fetch new articles
-      interval: '*/2 * * * *',
+      interval: '*/2 * * * * *',
     }
   },
   // Settings of the data storages
