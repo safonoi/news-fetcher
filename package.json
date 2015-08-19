@@ -15,21 +15,26 @@
     "grunt-babel": "^5.0.1",
     "grunt-contrib-jshint": "^0.11.2",
     "grunt-contrib-watch": "^0.6.1",
+    "grunt-run": "^0.3.0",
     "jshint-stylish": "^2.0.1"
   },
   "name": "news-fetcher",
   "private": false,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A simple news fetcher",
-  "keywords": [],
+  "keywords": [
+    "rss",
+    "atom",
+    "news",
+    "parser"
+  ],
   "scripts": {
-    "start": "",
-    "debug": ""
+    "start": "node ./src/run.js"
   },
-  "main": "",
+  "main": "./src/run.js",
   "repository": {
     "type": "git",
-    "url": "git://"
+    "url": "https://github.com/safonoi/news-fetcher"
   },
   "author": "safonoi",
   "license": "MIT"

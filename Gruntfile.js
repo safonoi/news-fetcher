@@ -33,10 +33,18 @@ module.exports = function(grunt) {
         files: ['config/*.js'],
         tasks: ['jshint']
       }
+    },
+    run: {
+      tool: {
+        cmd: 'node',
+        args: ['./build/run.js']
+      }
     }
   });
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-babel');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-run');
   grunt.registerTask('default', ['jshint', 'babel', 'watch']);
+  grunt.registerTask('prod', ['babel', 'run']);
 };
