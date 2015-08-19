@@ -10,10 +10,40 @@ import {CronJob} from 'cron';
  * @param {boolean} _isError
  * It would be better to implement more powerfull functional
  */
-function log (message, _isError = false){
+function log(message, _isError = false){
   if(config.debug || _isError){
     console.log(message);
   }
+}
+
+/**
+ * Storage for cron jobs status (true: locked, false: unlocked)
+ * @type {object}
+ */
+var jobLock = {};
+
+/**
+ * Lock cron job
+ * @param {string} jobName
+ */
+function cronJobLock(jobName) {
+  jobLock[jobName] = true;
+}
+
+/**
+ * Unlock cron job
+ * @param {string} jobName
+ */
+function cronJobUnlock(jobName) {
+  jobLock[jobName] = false;
+}
+
+/**
+ * Is cron job locked?
+ * @param {string} jobName
+ */
+function cronjobIsLocked(jobName){
+  return jobLock[jobName] !== undefined ? jobLock[jobName] : false;
 }
 
 /**
@@ -97,10 +127,17 @@ function setCronsForFetchers(commonData, callback) {
     var job = new CronJob(config.fetchers[fetcherName].interval,
       // Job function
       function() {
-        log(`Launch ${fetcherName} ..`);
-        fetcher.launch(function(err, result){
-          log(`${result[0]} has fethced ${result[1]} articles`);
-        });
+        if(!cronjobIsLocked(fetcherName)) {
+          log(`Launch ${fetcherName} ..`);
+          cronJobLock(fetcherName);
+          fetcher.launch(function (err, result) {
+            log(`${result[0]} has fethced ${result[1]} articles`);
+            cronJobUnlock(fetcherName);
+          });
+        }
+        else {
+          log(`Cron job ${fetcherName} is locked!`);
+        }
       }
     );
     commonData.jobs.push(job);
