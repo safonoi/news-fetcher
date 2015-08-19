@@ -116,7 +116,7 @@ export class Fetcher extends EventEmitter {
           });
           // When feedparser finishes getting data from feed we'll call user callback
           feedparser.on('end', function(){
-            // Save id of the first article from feed
+            // Save id of the last (newest) article from feed
             if(fetchedArticles.length)
               self.storage.setLastId(self.id, self.getArticleId(fetchedArticles[0]));
             callback(null, {meta: this.meta, articles: fetchedArticles});
@@ -160,5 +160,20 @@ export class Fetcher extends EventEmitter {
   saveArticles(articles) {
     assert.ok(_.isArray(articles), 'articles param must be an array');
     this.storage.save(this.id, articles);
+  }
+
+  /**
+   * Fetch, format and save new articles from feed
+   * @param {function} callback User's callback function
+   * @throws {AssertionError}
+   */
+  launch(callback = function(){}) {
+    assert.ok(typeof(callback) === 'function', 'callback must be a function');
+    var self = this;
+    self.getFeedContent(function(err, data){
+      var articles = self.format(data.articles, data.meta);
+      self.saveArticles(articles);
+      callback(null);
+    });
   }
 }
