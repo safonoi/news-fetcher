@@ -48,7 +48,7 @@ module.exports = {
   // Settings of the data storages
   storages: {
     // Storage that use redisdb. This storage implementation is stored in the ./src/storages/ directory
-    redis: {need to implement in the future
+    redis: {
       class: 'RedisStorage',
       host: 'localhost',
       port: 6379,
@@ -76,3 +76,4 @@ All fetchers will get only new articles from feed.
 - Save pictures for articles if they exist.
 - Parse information about number of likes and reposts news in the social networks.
 - Use iconv library for convert encoding of the response.
+- Use pm2 process manager for keeping app alive
